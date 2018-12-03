@@ -25,7 +25,7 @@ program
       console.log("You need to speficy a project name");
       return;
     }
-    const dir = path.join(options.directory || __dirname, slug);
+    const dir = path.join(options.directory || process.cwd(), slug);
     const token = await authenticateToGithub();
     const repo = await cloneBoilerplate(dir);
     await replaceProjectName(dir, slug);
