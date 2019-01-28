@@ -1,43 +1,44 @@
 #!/usr/bin/env node
 
 const path = require("path");
+const util = require("util");
 const fs = require("fs");
 const program = require("commander");
 const Git = require("nodegit");
 const octokit = require("@octokit/rest")();
 const homedir = require("os").homedir();
 const inquirer = require("inquirer");
-const exec = require("child_process").exec;
+const exec = util.promisify(require("child_process").exec);
 var Spinner = require("cli-spinner").Spinner;
 
 require("dotenv").config({
-  path: path.join(homedir, ".na-generator")
+  path: path.join(homedir, ".na-cli")
 });
 
 // receive commands
 program
-  .version("1.0.1", "-v, --version")
+  .version("1.0.2", "-v, --version")
   .command("setup <slug>")
-  .description("Setup a new dataviz project with specified slug")
+  .description("Scaffold a new data viz project with specified slug")
   .option("-d, --directory [dir]", "The install path for your new app")
   .action(async function(slug, options) {
     if (!slug) {
-      console.log("You need to speficy a project name");
-      return;
+      console.error("🚫  You need to speficy a project name");
+      process.exit(1);
     }
     const dir = path.join(options.directory || process.cwd(), slug);
     const token = await authenticateToGithub();
     const repo = await cloneBoilerplate(dir);
     await replaceProjectName(dir, slug);
     const url = await createNewRepoInOrg(slug);
-    const remote = await changeRemoteUrl(repo, url);
-    await initNewProjectWithCommit(repo, remote, dir, token);
+    await changeRemoteUrl(repo, url);
     await installDependencies(dir);
+    await initNewProjectWithCommit(dir);
   });
 
 program.parse(process.argv);
 
-// authenticate with github, save oauth token to "~/.na-generator"
+// authenticate with github, save oauth token to "~/.na-cli"
 async function authenticateToGithub() {
   let accessToken = process.env.NA_GITHUB_ACCESS_TOKEN;
   if (!accessToken) {
@@ -73,11 +74,11 @@ async function authenticateToGithub() {
     });
 
     fs.writeFile(
-      path.join(homedir, ".na-generator"),
+      path.join(homedir, ".na-cli"),
       `NA_GITHUB_ACCESS_TOKEN=${token}`,
       err => {
         if (err) throw err;
-        console.log("Github access token saved for the future");
+        console.log("✔  Github access token saved for the future");
       }
     );
     accessToken = token;
@@ -93,10 +94,10 @@ async function authenticateToGithub() {
 async function cloneBoilerplate(dir) {
   if (!fs.existsSync(path.join(dir, ".git"))) {
     const newRepo = await Git.Clone(
-      "https://github.com/newamerica-graphics/data-viz-boilerplate.git",
+      "https://github.com/newamericafoundation/data-viz-boilerplate.git",
       dir
     );
-    console.log(`✅  Cloned boilerplate into a new folder: ${dir}`);
+    console.log(`✔  Cloned boilerplate into a new folder: ${dir}`);
     return newRepo;
   } else {
     console.log(`⚠️  The directory "${dir}" already exists`);
@@ -113,7 +114,7 @@ async function replaceProjectName(dir, slug) {
     const newValue = data.replace("data_viz_project_template", slug);
     fs.writeFile(packageJson, newValue, "utf-8", function(err) {
       if (err) throw err;
-      console.log(`✅  Project name replaced with: ${slug}`);
+      console.log(`✔  Project name replaced with: ${slug}`);
     });
   });
 }
@@ -147,7 +148,7 @@ async function createNewRepoInOrg(slug) {
         org: "newamerica-graphics",
         name: slug
       });
-      console.log(`✅  New repo created here: ${createRepo.data.clone_url}`);
+      console.log(`✔  New repo created here: ${createRepo.data.clone_url}`);
       return createRepo.data.clone_url;
     }
   }
@@ -161,54 +162,48 @@ async function changeRemoteUrl(repo, newUrl) {
     remote.url() ===
     "https://github.com/newamerica-graphics/data-viz-boilerplate.git"
   ) {
-    console.error("🚫 You can't push to the main boilerplate!");
+    console.error("🚫  You can't push to the main boilerplate!");
     process.exit(1);
   }
-  console.log(`✅  Updated remote url to: ${remote.url()}`);
+  console.log(`✔  Updated remote url to: ${remote.url()}`);
   return remote;
-}
-
-// commit name change
-async function initNewProjectWithCommit(repo, remote, dir, token) {
-  try {
-    const packageJson = path.join(dir, "package.json");
-    const user = await Git.Config.openDefault().then(function(config) {
-      return config.getStringBuf("user.name");
-    });
-    const email = await Git.Config.openDefault().then(function(config) {
-      return config.getStringBuf("user.email");
-    });
-    const signature = Git.Signature.now("test", email);
-    const stage = await repo.stageFilemode("package.json", true);
-    const commit = await repo.createCommitOnHead(
-      ["package.json"],
-      signature,
-      signature,
-      "project init"
-    );
-    await remote.push(["refs/heads/master:refs/heads/master"], {
-      callbacks: {
-        credentials: function() {
-          return Git.Cred.userpassPlaintextNew(token, "x-oauth-basic");
-        },
-        certificateCheck: function() {
-          return 1;
-        }
-      }
-    });
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
-  }
 }
 
 // install deps in new project
 async function installDependencies(dir) {
+  const { dependencies } = await inquirer.prompt([
+    {
+      type: "checkbox",
+      name: "dependencies",
+      message: "Which dependencies would you like to install?",
+      choices: [
+        "@newamerica/meta",
+        "@newamerica/scss",
+        "@newamerica/charts",
+        "@newamerica/maps",
+        "@newamerica/data-table",
+        "@newamerica/timeline",
+        "@newamerica/components"
+      ],
+      default: ["@newamerica/meta", "@newamerica/scss"]
+    }
+  ]);
   const spinner = new Spinner("Installing dependencies.. %s");
   spinner.setSpinnerString("|/-\\");
   spinner.start();
-  exec("npm install", { cwd: dir }, err => {
-    spinner.stop();
-    if (err) console.error(err);
-  }).stderr.pipe(process.stderr);
+  const { stderr } = await exec(
+    `npm install ${dependencies.join(" ")} && npm install`,
+    { cwd: dir }
+  );
+  spinner.stop(true);
+  console.log(`\n${stderr.trim()}\n\n✔  Installed project dependencies\n`);
+}
+
+// commit name change and new project deps
+async function initNewProjectWithCommit(dir) {
+  const { stderr } = await exec(
+    'git commit -am "project init" && git push origin master',
+    { cwd: dir }
+  );
+  console.log(`✔  Project successfully scaffolded.\n${stderr.trim()}`);
 }

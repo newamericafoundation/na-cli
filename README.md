@@ -23,16 +23,16 @@ npm install -g na-generator
 ### Example
 
 ```
-naviz setup nann_network_research -d ~/code
+na-cli setup nann_network_research -d ~/code
 ```
 
 ### Usage
 
 ```
-Usage: naviz [command] [options]
+Usage: na-cli [command] [options]
 
 Commands:
-  setup <slug>            Setup a new dataviz project with specified slug
+  setup <slug>            Scaffold a new data viz project with specified slug
 
 Options:
   -d, --directory         an optional directory, defaults to current directory if omitted

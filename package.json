@@ -1,17 +1,17 @@
 {
-  "name": "na-generator",
-  "version": "1.0.1",
+  "name": "@newamerica/na-cli",
+  "version": "1.0.2",
   "description": "A CLI app to generate New America dataviz projects",
   "main": "index.js",
   "bin": {
-    "naviz": "./cli.js"
+    "na-cli": "./cli.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/newamerica-graphics/na-generator.git"
+    "url": "https://github.com/newamericafoundation/na-cli.git"
   },
   "author": "lries",
   "license": "ISC",
