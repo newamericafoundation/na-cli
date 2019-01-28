@@ -17,7 +17,7 @@ Things you need:
 - write access to the newamerica-graphics organization
 
 ```
-npm install -g na-generator
+npm install -g @newamerica/na-cli
 ```
 
 ### Example
