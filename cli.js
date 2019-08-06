@@ -17,7 +17,7 @@ require("dotenv").config({
 
 // receive commands
 program
-  .version("1.0.2", "-v, --version")
+  .version("1.0.3", "-v, --version")
   .command("setup <slug>")
   .description("Scaffold a new data viz project with specified slug")
   .option("-d, --directory [dir]", "The install path for your new app")
