@@ -16,15 +16,7 @@ Things you need:
 - git and node
 - write access to the newamerica-graphics organization
 
-```
-npm install -g @newamerica/na-cli
-```
-
-### Example
-
-```
-na-cli setup nann_network_research -d ~/code
-```
+Use with [npx](https://www.npmjs.com/package/npx) is recommended so that you don't have install anything globally or worry about keeping it up to date. But if you want to install the package, you can use `npm install -g @newamerica/na-cli`
 
 ### Usage
 
@@ -38,4 +30,10 @@ Options:
   -d, --directory         an optional directory, defaults to current directory if omitted
   -v, --version           output the version number
   -h, --help              output usage information
+```
+
+### Example usage with npx
+
+```
+npx @newamerica/na-cli na-cli setup nann_network_research -d ~/code
 ```
