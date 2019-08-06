@@ -1,6 +1,6 @@
 {
   "name": "@newamerica/na-cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A CLI app to generate New America dataviz projects",
   "main": "index.js",
   "bin": {
